@@ -113,7 +113,6 @@ impl Window {
     pub fn contains_point(&self, col: u16, row: u16) -> bool {
         let c = col as i32;
         let r = row as i32;
-        c >= self.x && c < self.x + self.w as i32
-            && r >= self.y && r < self.y + self.h as i32
+        c >= self.x && c < self.x + self.w as i32 && r >= self.y && r < self.y + self.h as i32
     }
 }

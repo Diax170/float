@@ -1,6 +1,9 @@
 use std::io::{self, Write};
 
-use crossterm::{cursor, queue, style::{Print, SetBackgroundColor, SetForegroundColor}};
+use crossterm::{
+    cursor, queue,
+    style::{Print, SetBackgroundColor, SetForegroundColor},
+};
 
 use crate::cell::{self, Cell};
 use crate::frame;
@@ -184,8 +187,10 @@ impl WindowManager {
                 queue!(stdout, cursor::Hide)?;
             } else {
                 let (curs_row, curs_col) = screen.cursor_position();
-                let abs_row = (focused.content_y() + curs_row as i32).clamp(0, rows as i32 - 1) as u16;
-                let abs_col = (focused.content_x() + curs_col as i32).clamp(0, cols as i32 - 1) as u16;
+                let abs_row =
+                    (focused.content_y() + curs_row as i32).clamp(0, rows as i32 - 1) as u16;
+                let abs_col =
+                    (focused.content_x() + curs_col as i32).clamp(0, cols as i32 - 1) as u16;
                 queue!(stdout, cursor::MoveTo(abs_col, abs_row), cursor::Show)?;
             }
         } else {

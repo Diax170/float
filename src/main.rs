@@ -1,6 +1,6 @@
-mod config;
 mod cell;
 mod compositor;
+mod config;
 mod escape;
 mod frame;
 mod input;

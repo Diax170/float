@@ -147,7 +147,9 @@ pub fn load() -> Config {
 
 fn config_path() -> std::path::PathBuf {
     if let Some(dir) = std::env::var_os("XDG_CONFIG_HOME") {
-        return std::path::PathBuf::from(dir).join("float").join("config.toml");
+        return std::path::PathBuf::from(dir)
+            .join("float")
+            .join("config.toml");
     }
 
     if let Ok(home) = std::env::var("HOME") {
@@ -157,5 +159,7 @@ fn config_path() -> std::path::PathBuf {
             .join("config.toml");
     }
 
-    std::path::PathBuf::from(".config").join("float").join("config.toml")
+    std::path::PathBuf::from(".config")
+        .join("float")
+        .join("config.toml")
 }

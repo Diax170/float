@@ -3,8 +3,8 @@ use crossterm::event::{
 };
 
 use crate::cell::Cell;
-use crate::window::Window;
 use crate::config::Config;
+use crate::window::Window;
 
 /// What kind of mouse-driven operation is in progress.
 enum MouseOp {
@@ -13,15 +13,26 @@ enum MouseOp {
         offset_x: i32,
         offset_y: i32,
     },
-    ResizeLeft { window_id: usize, anchor_right: i32 },
-    ResizeRight { window_id: usize },
-    ResizeBottom { window_id: usize },
-    ResizeBottomLeft { window_id: usize, anchor_right: i32 },
-    ResizeBottomRight { window_id: usize },
+    ResizeLeft {
+        window_id: usize,
+        anchor_right: i32,
+    },
+    ResizeRight {
+        window_id: usize,
+    },
+    ResizeBottom {
+        window_id: usize,
+    },
+    ResizeBottomLeft {
+        window_id: usize,
+        anchor_right: i32,
+    },
+    ResizeBottomRight {
+        window_id: usize,
+    },
 }
 
 pub struct WindowManager {
-
     pub(crate) windows: Vec<Window>,
     pub(crate) focused: usize,
     next_id: usize,
@@ -85,7 +96,10 @@ impl WindowManager {
         }
 
         if key.code == KeyCode::Esc {
-            self.esc_pending = Some(std::time::Instant::now() + std::time::Duration::from_millis(self.config.alt_timeout_ms));
+            self.esc_pending = Some(
+                std::time::Instant::now()
+                    + std::time::Duration::from_millis(self.config.alt_timeout_ms),
+            );
             return Ok(());
         }
         if !self.windows.is_empty()
@@ -219,14 +233,7 @@ impl WindowManager {
         } else {
             std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string())
         };
-        let win = Window::new(
-            id,
-            &shell,
-            new_x,
-            new_y,
-            new_w,
-            new_h,
-        )?;
+        let win = Window::new(id, &shell, new_x, new_y, new_w, new_h)?;
         self.windows.push(win);
         self.focused = self.windows.len() - 1;
         self.force_full = true;
@@ -305,7 +312,6 @@ impl WindowManager {
             self.dirty = true;
         }
     }
-
 
     pub fn resize_screen(&mut self, term_rows: u16, term_cols: u16) {
         self.term_rows = term_rows;
@@ -412,8 +418,11 @@ impl WindowManager {
                 }) => {
                     if let Some(idx) = self.windows.iter().position(|w| w.id == window_id) {
                         let w = &mut self.windows[idx];
-                        let new_x = (event.column as i32).min(anchor_right - self.config.layout.min_window_cols as i32);
-                        let new_w = (anchor_right - new_x).max(self.config.layout.min_window_cols as i32) as u16;
+                        let new_x = (event.column as i32)
+                            .min(anchor_right - self.config.layout.min_window_cols as i32);
+                        let new_w = (anchor_right - new_x)
+                            .max(self.config.layout.min_window_cols as i32)
+                            as u16;
                         w.x = new_x;
                         w.w = new_w;
                         self.force_full = true;
@@ -423,7 +432,9 @@ impl WindowManager {
                 Some(MouseOp::ResizeRight { window_id }) => {
                     if let Some(idx) = self.windows.iter().position(|w| w.id == window_id) {
                         let w = &mut self.windows[idx];
-                        let new_w = (event.column as i32 - w.x + 1).max(self.config.layout.min_window_cols as i32) as u16;
+                        let new_w = (event.column as i32 - w.x + 1)
+                            .max(self.config.layout.min_window_cols as i32)
+                            as u16;
                         w.w = new_w;
                         w.pty.resize(w.content_h(), new_w.saturating_sub(2));
                         self.force_full = true;
@@ -433,7 +444,9 @@ impl WindowManager {
                 Some(MouseOp::ResizeBottom { window_id }) => {
                     if let Some(idx) = self.windows.iter().position(|w| w.id == window_id) {
                         let w = &mut self.windows[idx];
-                        let new_h = (event.row as i32 - w.y + 1).max(self.config.layout.min_window_rows as i32) as u16;
+                        let new_h = (event.row as i32 - w.y + 1)
+                            .max(self.config.layout.min_window_rows as i32)
+                            as u16;
                         w.h = new_h;
                         w.pty.resize(new_h.saturating_sub(4), w.content_w());
                         self.force_full = true;
@@ -446,9 +459,14 @@ impl WindowManager {
                 }) => {
                     if let Some(idx) = self.windows.iter().position(|w| w.id == window_id) {
                         let w = &mut self.windows[idx];
-                        let new_x = (event.column as i32).min(anchor_right - self.config.layout.min_window_cols as i32);
-                        let new_w = (anchor_right - new_x).max(self.config.layout.min_window_cols as i32) as u16;
-                        let new_h = (event.row as i32 - w.y + 1).max(self.config.layout.min_window_rows as i32) as u16;
+                        let new_x = (event.column as i32)
+                            .min(anchor_right - self.config.layout.min_window_cols as i32);
+                        let new_w = (anchor_right - new_x)
+                            .max(self.config.layout.min_window_cols as i32)
+                            as u16;
+                        let new_h = (event.row as i32 - w.y + 1)
+                            .max(self.config.layout.min_window_rows as i32)
+                            as u16;
                         w.x = new_x;
                         w.w = new_w;
                         w.h = new_h;
@@ -461,8 +479,12 @@ impl WindowManager {
                 Some(MouseOp::ResizeBottomRight { window_id }) => {
                     if let Some(idx) = self.windows.iter().position(|w| w.id == window_id) {
                         let w = &mut self.windows[idx];
-                        let new_w = (event.column as i32 - w.x + 1).max(self.config.layout.min_window_cols as i32) as u16;
-                        let new_h = (event.row as i32 - w.y + 1).max(self.config.layout.min_window_rows as i32) as u16;
+                        let new_w = (event.column as i32 - w.x + 1)
+                            .max(self.config.layout.min_window_cols as i32)
+                            as u16;
+                        let new_h = (event.row as i32 - w.y + 1)
+                            .max(self.config.layout.min_window_rows as i32)
+                            as u16;
                         w.w = new_w;
                         w.h = new_h;
                         w.pty
@@ -536,7 +558,6 @@ impl WindowManager {
         self.dirty = false;
     }
 }
-
 
 fn bring_to_front(windows: &mut Vec<Window>, idx: usize) {
     if idx < windows.len() - 1 {

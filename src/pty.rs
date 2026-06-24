@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 use std::sync::mpsc;
 
-use portable_pty::{CommandBuilder, MasterPty, PtySize, native_pty_system};
 use crate::escape::{fix_escape_sequences, respond_to_queries};
+use portable_pty::{CommandBuilder, MasterPty, PtySize, native_pty_system};
 
 pub struct Pty {
     master: Box<dyn MasterPty>,

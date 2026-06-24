@@ -104,8 +104,9 @@ pub struct Config {
     pub layout: LayoutConfig,
     pub alt_timeout_ms: u64,
     pub poll_interval_ms: u64,
+    #[serde(default)]
+    pub disable_mouse: bool,
 }
-
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -115,6 +116,7 @@ impl Default for Config {
             layout: LayoutConfig::default(),
             alt_timeout_ms: 200,
             poll_interval_ms: 16,
+            disable_mouse: false,
         }
     }
 }

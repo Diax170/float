@@ -6,7 +6,10 @@
 # - Non-empty: used directly (e.g. "/usr/bin/fish", "/bin/zsh")
 # - Empty (""): falls back to the $SHELL environment variable
 # - If $SHELL is also unset: falls back to "bash"
-# shell = ""
+shell = ""
+
+# Disable mouse support entirely. Also hides the window title bar.
+disable_mouse = false
 
 [theme]
 # ANSI color index (0–255).

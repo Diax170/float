@@ -233,7 +233,15 @@ impl WindowManager {
         } else {
             std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string())
         };
-        let win = Window::new(id, &shell, new_x, new_y, new_w, new_h)?;
+        let win = Window::new(
+            id,
+            &shell,
+            new_x,
+            new_y,
+            new_w,
+            new_h,
+            !self.config.disable_mouse,
+        )?;
         self.windows.push(win);
         self.focused = self.windows.len() - 1;
         self.force_full = true;
@@ -283,8 +291,7 @@ impl WindowManager {
         let new_h = (w.h as i32 + dh).max(self.config.layout.min_window_rows as i32) as u16;
         w.w = new_w;
         w.h = new_h;
-        w.pty
-            .resize(new_h.saturating_sub(4), new_w.saturating_sub(2));
+        w.pty.resize(w.content_h(), w.content_w());
         self.force_full = true;
         self.dirty = true;
     }
@@ -322,6 +329,10 @@ impl WindowManager {
     }
 
     pub fn handle_mouse(&mut self, event: MouseEvent) -> anyhow::Result<()> {
+        if self.config.disable_mouse {
+            return Ok(());
+        }
+
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 for i in (0..self.windows.len()).rev() {
@@ -436,7 +447,7 @@ impl WindowManager {
                             .max(self.config.layout.min_window_cols as i32)
                             as u16;
                         w.w = new_w;
-                        w.pty.resize(w.content_h(), new_w.saturating_sub(2));
+                        w.pty.resize(w.content_h(), w.content_w());
                         self.force_full = true;
                         self.dirty = true;
                     }
@@ -448,7 +459,7 @@ impl WindowManager {
                             .max(self.config.layout.min_window_rows as i32)
                             as u16;
                         w.h = new_h;
-                        w.pty.resize(new_h.saturating_sub(4), w.content_w());
+                        w.pty.resize(w.content_h(), w.content_w());
                         self.force_full = true;
                         self.dirty = true;
                     }
@@ -470,8 +481,7 @@ impl WindowManager {
                         w.x = new_x;
                         w.w = new_w;
                         w.h = new_h;
-                        w.pty
-                            .resize(new_h.saturating_sub(4), new_w.saturating_sub(2));
+                        w.pty.resize(w.content_h(), w.content_w());
                         self.force_full = true;
                         self.dirty = true;
                     }
@@ -487,8 +497,7 @@ impl WindowManager {
                             as u16;
                         w.w = new_w;
                         w.h = new_h;
-                        w.pty
-                            .resize(new_h.saturating_sub(4), new_w.saturating_sub(2));
+                        w.pty.resize(w.content_h(), w.content_w());
                         self.force_full = true;
                         self.dirty = true;
                     }

@@ -25,21 +25,18 @@ fn main() -> anyhow::Result<()> {
     let mut stdout = io::stdout();
 
     enable_raw_mode()?;
-    execute!(
-        stdout,
-        EnterAlternateScreen,
-        cursor::Hide,
-        event::EnableMouseCapture,
-    )?;
+    execute!(stdout, EnterAlternateScreen, cursor::Hide,)?;
+    let disable_mouse = wm.config.disable_mouse;
+    if !disable_mouse {
+        execute!(stdout, event::EnableMouseCapture)?;
+    }
 
     let restore = || {
         let mut out = io::stdout();
-        let _ = execute!(
-            out,
-            cursor::Show,
-            LeaveAlternateScreen,
-            event::DisableMouseCapture
-        );
+        let _ = execute!(out, cursor::Show, LeaveAlternateScreen,);
+        if !disable_mouse {
+            let _ = execute!(out, event::DisableMouseCapture);
+        }
         let _ = terminal::disable_raw_mode();
     };
 

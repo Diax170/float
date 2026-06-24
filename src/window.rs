@@ -9,16 +9,30 @@ pub struct Window {
     pub w: u16,
     pub h: u16,
     pub title: String,
+    pub decorations: bool,
     pub pty: Pty,
 }
 
 impl Window {
-    pub fn new(id: usize, shell: &str, x: i32, y: i32, w: u16, h: u16) -> anyhow::Result<Self> {
-        let content_w = if w < 6 { 2 } else { w - 2 };
-        let content_h = if h < 5 { 1 } else { h.saturating_sub(4) };
+    pub fn new(
+        id: usize,
+        shell: &str,
+        x: i32,
+        y: i32,
+        w: u16,
+        h: u16,
+        decorations: bool,
+    ) -> anyhow::Result<Self> {
+        let (content_w, content_h, w, h) = if decorations {
+            let content_w = if w < 6 { 2 } else { w - 2 };
+            let content_h = if h < 5 { 1 } else { h.saturating_sub(4) };
+            (content_w, content_h, content_w + 2, content_h + 4)
+        } else {
+            let content_w = if w < 4 { 2 } else { w - 2 };
+            let content_h = if h < 3 { 1 } else { h - 2 };
+            (content_w, content_h, content_w + 2, content_h + 2)
+        };
 
-        let w = content_w + 2;
-        let h = content_h + 4;
         let pty = Pty::spawn(shell, content_h, content_w)?;
         let title = pty.process_name().unwrap_or_else(|| shell.to_string());
 
@@ -29,6 +43,7 @@ impl Window {
             w,
             h,
             title,
+            decorations,
             pty,
         })
     }
@@ -38,7 +53,11 @@ impl Window {
     }
 
     pub fn content_h(&self) -> u16 {
-        self.h.saturating_sub(4)
+        if self.decorations {
+            self.h.saturating_sub(4)
+        } else {
+            self.h.saturating_sub(2)
+        }
     }
 
     pub fn content_x(&self) -> i32 {
@@ -46,7 +65,11 @@ impl Window {
     }
 
     pub fn content_y(&self) -> i32 {
-        self.y + 3
+        if self.decorations {
+            self.y + 3
+        } else {
+            self.y + 1
+        }
     }
 
     pub fn process(&mut self) -> bool {

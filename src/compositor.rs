@@ -43,7 +43,7 @@ impl WindowManager {
                     window.y,
                     window.w,
                     window.h,
-                    Some(&window.title),
+                    if self.config.disable_mouse { None } else { Some(&window.title) },
                     border_fg,
                     rows,
                     cols,

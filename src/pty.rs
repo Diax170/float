@@ -121,7 +121,7 @@ impl Pty {
         self.child.try_wait()
     }
 
-    pub fn kill(&mut self) -> io::Result<()> {
+    pub fn _kill(&mut self) -> io::Result<()> {
         self.child.kill()
     }
 }

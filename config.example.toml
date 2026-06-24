@@ -18,6 +18,9 @@ focused_border = 14
 # Border color for unfocused windows.
 unfocused_border = 8
 
+# Border color for pinned windows (overrides focused/unfocused).
+pinned_border = 11
+
 # Color used for the hint message when no windows are open.
 hint_text = 8
 
@@ -37,6 +40,7 @@ resize_left = "H"           # Alt+Shift+H
 resize_down = "J"           # Alt+Shift+J
 resize_up = "K"             # Alt+Shift+K
 resize_right = "L"          # Alt+Shift+L
+pin_window = "w"            # Alt+W
 
 [layout]
 # Pixel offset when cascading a new window from the focused one.

@@ -16,6 +16,7 @@ impl ColorDef {
 pub struct ThemeConfig {
     pub focused_border: ColorDef,
     pub unfocused_border: ColorDef,
+    pub pinned_border: ColorDef,
     pub hint_text: ColorDef,
 }
 
@@ -24,6 +25,7 @@ impl Default for ThemeConfig {
         Self {
             focused_border: ColorDef(14),
             unfocused_border: ColorDef(8),
+            pinned_border: ColorDef(11),
             hint_text: ColorDef(8),
         }
     }
@@ -45,6 +47,7 @@ pub struct KeyConfig {
     pub resize_down: char,
     pub resize_up: char,
     pub resize_right: char,
+    pub pin_window: char,
 }
 
 impl Default for KeyConfig {
@@ -63,6 +66,7 @@ impl Default for KeyConfig {
             resize_down: 'J',
             resize_up: 'K',
             resize_right: 'L',
+            pin_window: 'w',
         }
     }
 }

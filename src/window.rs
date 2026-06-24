@@ -10,6 +10,7 @@ pub struct Window {
     pub h: u16,
     pub title: String,
     pub decorations: bool,
+    pub pinned: bool,
     pub pty: Pty,
 }
 
@@ -35,7 +36,6 @@ impl Window {
 
         let pty = Pty::spawn(shell, content_h, content_w)?;
         let title = pty.process_name().unwrap_or_else(|| shell.to_string());
-
         Ok(Window {
             id,
             x,
@@ -44,6 +44,7 @@ impl Window {
             h,
             title,
             decorations,
+            pinned: false,
             pty,
         })
     }

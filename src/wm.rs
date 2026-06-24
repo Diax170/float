@@ -194,6 +194,11 @@ impl WindowManager {
                 Ok(())
             }
 
+            (KeyCode::Char(c), _) if *c == self.config.keys.pin_window => {
+                self.toggle_pin_focused();
+                Ok(())
+            }
+
             (KeyCode::Char(c), _) if c.is_ascii_digit() => {
                 let n = c.to_digit(10).unwrap() as usize;
                 self.focus_window(n.wrapping_sub(1));
@@ -242,8 +247,9 @@ impl WindowManager {
             new_h,
             !self.config.disable_mouse,
         )?;
+        let new_idx = self.windows.len();
         self.windows.push(win);
-        self.focused = self.windows.len() - 1;
+        self.focused = bring_to_front(&mut self.windows, new_idx);
         self.force_full = true;
         self.dirty = true;
         Ok(())
@@ -254,8 +260,7 @@ impl WindowManager {
             return;
         }
         let new_focus = (self.focused + 1) % self.windows.len();
-        bring_to_front(&mut self.windows, new_focus);
-        self.focused = self.windows.len() - 1;
+        self.focused = bring_to_front(&mut self.windows, new_focus);
         self.dirty = true;
     }
 
@@ -268,8 +273,7 @@ impl WindowManager {
         } else {
             self.focused - 1
         };
-        bring_to_front(&mut self.windows, new_focus);
-        self.focused = self.windows.len() - 1;
+        self.focused = bring_to_front(&mut self.windows, new_focus);
         self.dirty = true;
     }
     fn move_focused(&mut self, dx: i32, dy: i32) {
@@ -304,8 +308,7 @@ impl WindowManager {
             self.focused = self.windows.len().saturating_sub(1);
         }
         if !self.windows.is_empty() {
-            bring_to_front(&mut self.windows, self.focused);
-            self.focused = self.windows.len() - 1;
+            self.focused = bring_to_front(&mut self.windows, self.focused);
         }
         self.force_full = true;
         self.dirty = true;
@@ -314,8 +317,7 @@ impl WindowManager {
 
     fn focus_window(&mut self, n: usize) {
         if n < self.windows.len() && n != self.focused {
-            bring_to_front(&mut self.windows, n);
-            self.focused = self.windows.len() - 1;
+            self.focused = bring_to_front(&mut self.windows, n);
             self.dirty = true;
         }
     }
@@ -338,8 +340,7 @@ impl WindowManager {
                 for i in (0..self.windows.len()).rev() {
                     let w = &self.windows[i];
                     if w.hit_title_bar(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         let offset_x = event.column as i32 - w.x;
                         let offset_y = event.row as i32 - w.y;
@@ -352,8 +353,7 @@ impl WindowManager {
                         break;
                     }
                     if w.hit_bottom_left_corner(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         let anchor_right = w.x + w.w as i32;
                         self.drag = Some(MouseOp::ResizeBottomLeft {
@@ -364,16 +364,14 @@ impl WindowManager {
                         break;
                     }
                     if w.hit_bottom_right_corner(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         self.drag = Some(MouseOp::ResizeBottomRight { window_id: w.id });
                         self.dirty = true;
                         break;
                     }
                     if w.hit_left_edge(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         let anchor_right = w.x + w.w as i32;
                         self.drag = Some(MouseOp::ResizeLeft {
@@ -384,24 +382,21 @@ impl WindowManager {
                         break;
                     }
                     if w.hit_right_edge(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         self.drag = Some(MouseOp::ResizeRight { window_id: w.id });
                         self.dirty = true;
                         break;
                     }
                     if w.hit_bottom_edge(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         let w = &self.windows[self.focused];
                         self.drag = Some(MouseOp::ResizeBottom { window_id: w.id });
                         self.dirty = true;
                         break;
                     }
                     if w.contains_point(event.column, event.row) {
-                        bring_to_front(&mut self.windows, i);
-                        self.focused = self.windows.len() - 1;
+                        self.focused = bring_to_front(&mut self.windows, i);
                         self.dirty = true;
                         break;
                     }
@@ -555,6 +550,15 @@ impl WindowManager {
         Ok(())
     }
 
+
+    fn toggle_pin_focused(&mut self) {
+        if self.windows.is_empty() {
+            return;
+        }
+        self.windows[self.focused].pinned = !self.windows[self.focused].pinned;
+        self.focused = bring_to_front(&mut self.windows, self.focused);
+        self.dirty = true;
+    }
     pub fn is_dirty(&self) -> bool {
         self.dirty
     }
@@ -568,9 +572,133 @@ impl WindowManager {
     }
 }
 
-fn bring_to_front(windows: &mut Vec<Window>, idx: usize) {
-    if idx < windows.len() - 1 {
-        let w = windows.remove(idx);
+/// Move the window at `idx` to its correct z-order position and return the new index.
+/// Pinned windows go to the very end (on top of all others).
+/// Unpinned windows go just before the first pinned window, or to the end if none are pinned.
+fn bring_to_front(windows: &mut Vec<Window>, idx: usize) -> usize {
+    // Already at the end — only correct for pinned windows.
+    if idx >= windows.len() - 1 && windows[idx].pinned {
+        return idx;
+    }
+    let is_pinned = windows[idx].pinned;
+    let w = windows.remove(idx);
+    if is_pinned {
         windows.push(w);
+        windows.len() - 1
+    } else {
+        let first_pinned = windows.iter().position(|win| win.pinned);
+        match first_pinned {
+            Some(pos) => {
+                windows.insert(pos, w);
+                pos
+            }
+            None => {
+                windows.push(w);
+                windows.len() - 1
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Pure z-order logic extracted from bring_to_front for testing.
+    /// Takes a slice of pinned flags, the index to bring to front, and returns the new index.
+    fn bring_to_front_test(pinned: &mut Vec<bool>, idx: usize) -> usize {
+        // Already at the end — only correct for pinned.
+        if idx >= pinned.len() - 1 && pinned[idx] {
+            return idx;
+        }
+        let is_pinned = pinned[idx];
+        pinned.remove(idx);
+        if is_pinned {
+            pinned.push(true);
+            pinned.len() - 1
+        } else {
+            let first_pinned = pinned.iter().position(|&p| p);
+            match first_pinned {
+                Some(pos) => {
+                    pinned.insert(pos, false);
+                    pos
+                }
+                None => {
+                    pinned.push(false);
+                    pinned.len() - 1
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn unpinned_no_pinned_goes_to_end() {
+        // [false, false, false*] -> bring idx 1 to front -> [false, false, false] idx 2
+        let mut v = vec![false, false, false];
+        let new_idx = bring_to_front_test(&mut v, 1);
+        assert_eq!(new_idx, 2);
+        assert_eq!(v, vec![false, false, false]);
+    }
+
+    #[test]
+    fn pinned_goes_to_very_end() {
+        // [false, true*, false] -> bring idx 1 to front -> [false, false, true] idx 2
+        let mut v = vec![false, true, false];
+        let new_idx = bring_to_front_test(&mut v, 1);
+        assert_eq!(new_idx, 2);
+        assert_eq!(v, vec![false, false, true]);
+    }
+
+    #[test]
+    fn unpinned_stops_before_first_pinned() {
+        // [true, false*, false] — unpinned at idx 1 above pinned; bring to front
+        // Remove idx 1 → [true, false]; first_pinned at 0; insert at 0 → [false, true, false]
+        let mut v = vec![true, false, false];
+        let new_idx = bring_to_front_test(&mut v, 1);
+        assert_eq!(new_idx, 0);
+        assert_eq!(v, vec![false, true, false]);
+    }
+
+    #[test]
+    fn pinned_already_at_end_stays() {
+        // [false, false, true*] -> idx 2 already last -> stays
+        let mut v = vec![false, false, true];
+        let new_idx = bring_to_front_test(&mut v, 2);
+        assert_eq!(new_idx, 2);
+        assert_eq!(v, vec![false, false, true]);
+    }
+
+    #[test]
+    fn multiple_pinned_lifo_order() {
+        // [true(A), false, true(B)*] -> bring B to front -> [true(A), false, true(B)]
+        // B already at end
+        let mut v = vec![true, false, true];
+        let new_idx = bring_to_front_test(&mut v, 2);
+        assert_eq!(new_idx, 2);
+        assert_eq!(v, vec![true, false, true]);
+
+        // Now bring A (idx 0) to front -> [false, true(B), true(A)] idx 2
+        let new_idx = bring_to_front_test(&mut v, 0);
+        assert_eq!(new_idx, 2);
+        assert_eq!(v, vec![false, true, true]);
+    }
+
+    #[test]
+    fn unpinned_stops_before_multiple_pinned() {
+        // [false*, true, true] -> bring idx 0 -> [true, true, false] idx 2? No:
+        // first_pinned is idx 0 (after removing false), so insert at 0 -> [false, true, true], pos 0
+        let mut v = vec![false, true, true];
+        let new_idx = bring_to_front_test(&mut v, 0);
+        assert_eq!(new_idx, 0);
+        assert_eq!(v, vec![false, true, true]);
+    }
+
+    #[test]
+    fn new_unpinned_goes_below_pinned() {
+        // Simulates: window is pinned, then a new window spawns.
+        // [true(A)] — push false(B), then bring_to_front on the new window (idx 1)
+        let mut v = vec![true];
+        v.push(false);
+        let new_idx = bring_to_front_test(&mut v, 1);
+        assert_eq!(new_idx, 0);  // new unpinned window goes below pinned
+        assert_eq!(v, vec![false, true]);
     }
 }

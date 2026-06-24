@@ -31,7 +31,9 @@ impl WindowManager {
             for i in 0..self.windows.len() {
                 let window = &self.windows[i];
                 let focused = i == self.focused;
-                let border_fg = if focused {
+                let border_fg = if self.windows[i].pinned {
+                    self.config.theme.pinned_border.to_crossterm()
+                } else if focused {
                     self.config.theme.focused_border.to_crossterm()
                 } else {
                     self.config.theme.unfocused_border.to_crossterm()
